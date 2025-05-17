@@ -19,6 +19,7 @@ interface RechartsWrapperProps {
   title: string;
   color: string;
   yAxisTickFormatter?: (value: number) => string;
+  horizontal?: boolean;
 }
 
 const TruncatedTick = (props: any) => {
@@ -49,24 +50,39 @@ export default function RechartsWrapper({
   title,
   color,
   yAxisTickFormatter,
+  horizontal = false,
 }: RechartsWrapperProps) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart
         data={data}
         margin={{ top: 20, right: 20, left: 24, bottom: 0 }}
+        layout={horizontal ? "vertical" : "horizontal"}
       >
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis
-          dataKey={xAxisKey}
-          angle={-45}
-          textAnchor="end"
-          height={48}
-          interval={0}
-          minTickGap={10}
-          tick={<TruncatedTick />}
-        />
-        <YAxis width={40} tickFormatter={yAxisTickFormatter} />
+        {horizontal ? (
+          <YAxis
+            type="category"
+            dataKey={xAxisKey}
+            width={120}
+            tick={<TruncatedTick />}
+          />
+        ) : (
+          <XAxis
+            dataKey={xAxisKey}
+            angle={-45}
+            textAnchor="end"
+            height={48}
+            interval={0}
+            minTickGap={10}
+            tick={<TruncatedTick />}
+          />
+        )}
+        {horizontal ? (
+          <XAxis type="number" tickFormatter={yAxisTickFormatter} />
+        ) : (
+          <YAxis width={40} tickFormatter={yAxisTickFormatter} />
+        )}
         <RechartsTooltip
           content={({ active, payload }) => {
             if (active && payload && payload.length) {
@@ -75,7 +91,7 @@ export default function RechartsWrapper({
                 <div className="rounded bg-background p-2 text-xs shadow">
                   <div><b>{d[xAxisKey]}</b></div>
                   <div>Strategy: {d[tooltipStrategyKey]}</div>
-                  <div>{title}: {d[dataKey].toFixed(2)}</div>
+                  <div>{title}: {d[dataKey as keyof typeof d].toFixed(2)}</div>
                 </div>
               );
             }

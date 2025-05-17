@@ -51,8 +51,15 @@ const formatYAxisNumber = (value: number) => {
 };
 
 export function StrategyCharts({ strategies }: StrategyChartsProps) {
-  // Use author_name for X-axis, but keep strategy_name for tooltip
-  const chartData = strategies.map(strategy => ({
+  // Use author_name for Y-axis, but keep strategy_name for tooltip
+  type ChartData = {
+    author: string;
+    strategy: string;
+    sharpe: number;
+    totalReturn: number;
+    winRate: number;
+  };
+  const chartData: ChartData[] = strategies.map(strategy => ({
     author: strategy.author_name,
     strategy: strategy.strategy_name,
     sharpe: strategy.development_metrics.sharpe,
@@ -60,32 +67,42 @@ export function StrategyCharts({ strategies }: StrategyChartsProps) {
     winRate: strategy.development_metrics.win_rate * 100,
   }));
 
+  // Chart height: 48px per bar, min 180px
+  const chartHeight = Math.max(135, chartData.length * 36); // 75% of previous values
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {chartConfigs.map((config) => (
-        <Card key={config.dataKey}>
-          <CardHeader>
-            <CardTitle>{config.title}</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <div className="h-[400px]">
-              <Suspense fallback={<ChartLoading />}>
-                <ErrorBoundary fallback={<ChartError title={config.title} />}>
-                  <RechartsWrapper
-                    data={chartData}
-                    dataKey={config.dataKey}
-                    xAxisKey="author"
-                    tooltipStrategyKey="strategy"
-                    title={config.title}
-                    color={config.color}
-                    yAxisTickFormatter={config.dataKey === 'totalReturn' ? formatYAxisNumber : undefined}
-                  />
-                </ErrorBoundary>
-              </Suspense>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+      {chartConfigs.map((config) => {
+        // Sort data by value for this chart
+        const sortedData = [...chartData].sort(
+          (a, b) => Number(b[config.dataKey as keyof ChartData]) - Number(a[config.dataKey as keyof ChartData])
+        );
+        return (
+          <Card key={config.dataKey}>
+            <CardHeader>
+              <CardTitle>{config.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-2">
+              <div style={{ height: chartHeight }}>
+                <Suspense fallback={<ChartLoading />}>
+                  <ErrorBoundary fallback={<ChartError title={config.title} />}>
+                    <RechartsWrapper
+                      data={sortedData}
+                      dataKey={config.dataKey}
+                      xAxisKey="author"
+                      tooltipStrategyKey="strategy"
+                      title={config.title}
+                      color={config.color}
+                      yAxisTickFormatter={config.dataKey === 'totalReturn' ? formatYAxisNumber : undefined}
+                      horizontal
+                    />
+                  </ErrorBoundary>
+                </Suspense>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
